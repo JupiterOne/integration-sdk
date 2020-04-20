@@ -6,7 +6,7 @@ import { vol } from 'memfs';
 import fetch from 'node-fetch';
 import getPort from 'get-port';
 
-import { toUnixPath } from '../../__tests__/toUnixPath';
+import { toUnixPath } from 'test/util';
 
 import { Recording, setupRecording } from '../recording';
 

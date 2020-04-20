@@ -3,10 +3,7 @@ import noop from 'lodash/noop';
 import { Entity, Relationship, IntegrationStep } from '../../framework';
 import { LOCAL_INTEGRATION_INSTANCE } from '../../framework/execution/instance';
 
-import {
-  loadProjectStructure,
-  restoreProjectStructure,
-} from '../../__tests__/loadProjectStructure';
+import { loadProjectStructure, restoreProjectStructure } from 'test/util';
 
 import {
   createMockExecutionContext,

@@ -1,5 +1,5 @@
 import { createCli } from '../index';
-import { loadProjectStructure } from '../../__tests__/loadProjectStructure';
+import { loadProjectStructure } from 'test/util';
 import * as log from '../../log';
 
 import { IntegrationStepResultStatus } from '../../framework/execution';

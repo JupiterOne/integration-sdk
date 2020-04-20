@@ -13,7 +13,7 @@ import {
   removeStorageDirectory,
 } from '../fileSystem';
 
-import { toUnixPath } from './toUnixPath';
+import { toUnixPath } from 'test/util';
 
 jest.mock('fs'); // applies manual mock which uses memfs
 

@@ -7,7 +7,7 @@ import {
   loadConfig,
 } from '../config';
 
-import { loadProjectStructure } from '../../__tests__/loadProjectStructure';
+import { loadProjectStructure } from 'test/util';
 
 jest.mock('../../log');
 
