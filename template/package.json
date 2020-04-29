@@ -18,7 +18,8 @@
     "test": "jest --passWithNoTests",
     "test:ci": "yarn lint && yarn type-check && yarn test",
     "prebuild": "yarn test:ci",
-    "build": "tsc -p tsconfig.dist.json --declaration"
+    "build": "tsc -p tsconfig.dist.json --declaration",
+    "prepublishOnly": "yarn build"
   },
   "dependencies": {
     "@jupiterone/integration-sdk": "^0.1.0"

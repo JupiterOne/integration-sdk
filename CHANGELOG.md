@@ -8,6 +8,9 @@ and this project adheres to
 
 ## [Unreleased]
 
+- Update integration template to include NPM publishing, necessary script in
+  `package.json`.
+
 ## 0.13.0 2020-04-29
 
 ### Added
