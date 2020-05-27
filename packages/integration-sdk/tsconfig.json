@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    "rootDir": ".",
+    "baseUrl": ".",
+    "outDir": "dist",
     "target": "es2018",
     "lib": ["es2018", "DOM"],
     "module": "commonjs",
@@ -12,6 +15,10 @@
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "allowJs": false
-  }
+  },
+  "include": [
+    "node_modules/jest-extended/types/index.d.ts",
+    "src",
+    "testing.ts"
+  ]
 }
-

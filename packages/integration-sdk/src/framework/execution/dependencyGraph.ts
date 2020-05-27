@@ -240,7 +240,7 @@ export function executeStepDependencyGraph<
         typeTracker,
         graphObjectStore,
         dataStore,
-        stepId
+        stepId,
       });
 
       context.logger.stepStart(step);

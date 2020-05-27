@@ -56,7 +56,7 @@ export type IntegrationStepResult = Omit<StepMetadata, 'types'> & {
    * the step's execution.
    */
   encounteredTypes: string[];
-}
+};
 
 export type IntegrationStep<
   TConfig extends IntegrationInstanceConfig = IntegrationInstanceConfig
