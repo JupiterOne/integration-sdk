@@ -1,5 +1,5 @@
 {
-  "name": "@jupiterone/integration-sdk-core",
+  "name": "@jupiterone/integration-sdk-runtime",
   "version": "0.1.0",
   "description": "The SDK for developing JupiterOne integrations",
   "main": "dist/src/index.js",
@@ -14,17 +14,15 @@
     "access": "public"
   },
   "scripts": {
+    "test": "jest",
     "compile": "tsc -p tsconfig.dist.json --declaration",
     "prebuild": "rm -rf dist && mkdir dist",
     "build": "yarn compile && cp -R README.md ../../LICENSE package.json ./dist"
   },
   "dependencies": {
-    "@jupiterone/data-model": "^0.6.0",
-    "axios": "^0.19.2",
-    "lodash": "^4.17.15",
-    "uuid": "^7.0.3"
+    "@jupiterone/integration-sdk-core": "^0.1.0"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.149"
+    "@jupiterone/integration-sdk-private-test-utils": "^0.1.0"
   }
 }

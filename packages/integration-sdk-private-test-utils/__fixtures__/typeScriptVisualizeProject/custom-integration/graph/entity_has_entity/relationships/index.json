@@ -1,0 +1,12 @@
+{
+  "relationships": [
+    {
+      "_key": "entity:1|has|entity:2",
+      "_type": "entity_has_entity",
+      "_class": "HAS",
+      "_fromEntityKey": "entity:1",
+      "_toEntityKey": "entity:2",
+      "displayName": "HAS"
+    }
+  ]
+}

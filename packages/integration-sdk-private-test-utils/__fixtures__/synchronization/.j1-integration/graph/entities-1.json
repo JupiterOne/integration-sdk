@@ -1,0 +1,19 @@
+{
+  "entities": [
+    {
+      "_key": "entity-1",
+      "_type": "test",
+      "_class": "Resource"
+    },
+    {
+      "_key": "entity-2",
+      "_type": "test",
+      "_class": "Resource"
+    },
+    {
+      "_key": "entity-3",
+      "_type": "test",
+      "_class": "Resource"
+    }
+  ]
+}

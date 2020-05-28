@@ -1,0 +1,10 @@
+{
+  "relationships": [
+    {
+      "_key": "relationship-3",
+      "_class": "HAS",
+      "_fromEntityKey": "test-5",
+      "_toEntityKey": "test-6"
+    }
+  ]
+}

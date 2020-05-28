@@ -1,0 +1,6 @@
+{
+  "myConfig": {
+    "mask": true,
+    "type": "boolean"
+  }
+}
