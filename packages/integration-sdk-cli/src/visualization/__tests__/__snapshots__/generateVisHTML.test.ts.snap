@@ -1,0 +1,69 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`renders custom config when passed in 1`] = `
+"<!DOCTYPE html>
+    <html lang=\\"en\\">
+    <head>
+        <meta charset=\\"UTF-8\\">
+        <meta name=\\"viewport\\" content=\\"width=device-width, initial-scale=1.0\\">
+        <title>Integration SDK Graph</title>
+    </head>
+    <body style=\\"height:100vh;width:100%\\">
+      <div id=\\"integration-graph\\" style=\\"height:100vh;width:100%\\"></div>
+      <script type=\\"text/javascript\\" src=\\"https://unpkg.com/vis-network@7.6.1/standalone/umd/vis-network.min.js\\"></script>
+      <script type=\\"text/javascript\\">
+        var nodes = new vis.DataSet([{\\"id\\":\\"1\\",\\"label\\":\\"Node 1\\"},{\\"id\\":\\"2\\",\\"label\\":\\"Node 2\\"},{\\"id\\":\\"3\\",\\"label\\":\\"Node 3\\"}]);
+        var edges = new vis.DataSet([{\\"from\\":\\"1\\",\\"to\\":\\"2\\"},{\\"from\\":\\"2\\",\\"to\\":\\"3\\"},{\\"from\\":\\"3\\",\\"to\\":\\"1\\"}]);
+        // create a network
+        var container = document.getElementById(\\"integration-graph\\");
+        var data = {
+          nodes: nodes,
+          edges: edges
+        };
+        var options = {};
+        var network = new vis.Network(container, data, options);
+      </script>
+    </body>
+    </html>"
+`;
+
+exports[`renders html with default config 1`] = `
+"<!DOCTYPE html>
+    <html lang=\\"en\\">
+    <head>
+        <meta charset=\\"UTF-8\\">
+        <meta name=\\"viewport\\" content=\\"width=device-width, initial-scale=1.0\\">
+        <title>Integration SDK Graph</title>
+    </head>
+    <body style=\\"height:100vh;width:100%\\">
+      <div id=\\"integration-graph\\" style=\\"height:100vh;width:100%\\"></div>
+      <script type=\\"text/javascript\\" src=\\"https://unpkg.com/vis-network@7.6.1/standalone/umd/vis-network.min.js\\"></script>
+      <script type=\\"text/javascript\\">
+        var nodes = new vis.DataSet([{\\"id\\":\\"1\\",\\"label\\":\\"Node 1\\"},{\\"id\\":\\"2\\",\\"label\\":\\"Node 2\\"},{\\"id\\":\\"3\\",\\"label\\":\\"Node 3\\"}]);
+        var edges = new vis.DataSet([{\\"from\\":\\"1\\",\\"to\\":\\"2\\"},{\\"from\\":\\"2\\",\\"to\\":\\"3\\"},{\\"from\\":\\"3\\",\\"to\\":\\"1\\"}]);
+        // create a network
+        var container = document.getElementById(\\"integration-graph\\");
+        var data = {
+          nodes: nodes,
+          edges: edges
+        };
+        var options = {\\"edges\\":{\\"arrows\\":{\\"to\\":{\\"enabled\\":true}}}};
+        var network = new vis.Network(container, data, options);
+      </script>
+    </body>
+    </html>"
+`;
+
+exports[`renders nothing to display message when there is nothing to display 1`] = `
+"<!DOCTYPE html>
+    <html lang=\\"en\\">
+    <head>
+        <meta charset=\\"UTF-8\\">
+        <meta name=\\"viewport\\" content=\\"width=device-width, initial-scale=1.0\\">
+        <title>Integration SDK Graph</title>
+    </head>
+    <body style=\\"height:100vh;width:100%\\">
+      <h1 style=\\"text-align: center;\\">There was no data found to visualize.</h1>
+    </body>
+    </html>"
+`;
