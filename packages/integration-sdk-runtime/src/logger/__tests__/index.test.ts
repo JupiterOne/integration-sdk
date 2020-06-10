@@ -1,11 +1,6 @@
 import { Writable } from 'stream';
-import noop from 'lodash/noop';
-
-import {
-  createIntegrationLogger,
-  createErrorEventDescription,
-} from '../../logger';
 import Logger from 'bunyan';
+
 import {
   SynchronizationJob,
   IntegrationError,
@@ -21,9 +16,10 @@ import {
   PROVIDER_AUTH_ERROR_DESCRIPTION,
 } from '@jupiterone/integration-sdk-core';
 
-import { SynchronizationJobContext } from '../../synchronization';
-
-import { createApiClient } from '../../api';
+import {
+  createIntegrationLogger,
+  createErrorEventDescription,
+} from '../../logger';
 
 const invocationConfig = {} as IntegrationInvocationConfig;
 const name = 'integration-logger';
@@ -272,21 +268,13 @@ describe('step event publishing', () => {
   });
 
   test('posts events via api client if synchronizationContext is registered', async () => {
-    const logger = createIntegrationLogger({ name, invocationConfig });
-    const context: SynchronizationJobContext = {
-      logger,
-      job: { id: 'test-job-id' } as SynchronizationJob,
-      apiClient: createApiClient({
-        apiBaseUrl: 'https://api.us.jupiterone.io',
-        account: 'mocheronis',
-      }),
-    };
+    const onPublishEvent = jest.fn();
 
-    logger.registerSynchronizationJobContext(context);
-
-    const postSpy = jest
-      .spyOn(context.apiClient, 'post')
-      .mockImplementation(noop as any);
+    const logger = createIntegrationLogger({
+      name,
+      invocationConfig,
+      onPublishEvent: onPublishEvent,
+    });
 
     const step: IntegrationStep = {
       id: 'a',
@@ -303,29 +291,22 @@ describe('step event publishing', () => {
     const error = new IntegrationLocalConfigFieldMissingError('ripperoni');
     logger.stepFailure(step, error);
 
-    await logger.flush();
-
-    const expectedEventsUrl =
-      '/persister/synchronization/jobs/test-job-id/events';
-
-    expect(postSpy).toHaveBeenCalledTimes(3);
-    expect(postSpy).toHaveBeenNthCalledWith(1, expectedEventsUrl, {
-      events: [{ name: 'step_start', description: 'Starting step "Mochi"...' }],
+    expect(onPublishEvent).toHaveBeenCalledTimes(3);
+    expect(onPublishEvent).toHaveBeenNthCalledWith(1, {
+      name: 'step_start',
+      description: 'Starting step "Mochi"...',
     });
-    expect(postSpy).toHaveBeenNthCalledWith(2, expectedEventsUrl, {
-      events: [{ name: 'step_end', description: 'Completed step "Mochi".' }],
+    expect(onPublishEvent).toHaveBeenNthCalledWith(2, {
+      name: 'step_end',
+      description: 'Completed step "Mochi".',
     });
-    expect(postSpy).toHaveBeenNthCalledWith(3, expectedEventsUrl, {
-      events: [
-        {
-          name: 'step_failure',
-          description: expect.stringMatching(
-            new RegExp(
-              `Step "Mochi" failed to complete due to error. \\(errorCode="${error.code}", errorId="(.*)"\\)$`,
-            ),
-          ),
-        },
-      ],
+    expect(onPublishEvent).toHaveBeenNthCalledWith(3, {
+      name: 'step_failure',
+      description: expect.stringMatching(
+        new RegExp(
+          `Step "Mochi" failed to complete due to error. \\(errorCode="${error.code}", errorId="(.*)"\\)$`,
+        ),
+      ),
     });
   });
 });
@@ -339,29 +320,16 @@ describe('provider auth error details', () => {
     executionHandler: jest.fn(),
   };
 
-  const expectedEventsUrl =
-    '/persister/synchronization/jobs/test-job-id/events';
-
-  let postSpy: jest.MockedFunction<any>;
+  let onPublishEvent: jest.MockedFunction<any>;
   let logger: IntegrationLogger;
 
   beforeEach(() => {
-    logger = createIntegrationLogger({ name, invocationConfig });
-
-    const context: SynchronizationJobContext = {
-      logger,
-      job: { id: 'test-job-id' } as SynchronizationJob,
-      apiClient: createApiClient({
-        apiBaseUrl: 'https://api.us.jupiterone.io',
-        account: 'mocheronis',
-      }),
-    };
-
-    logger.registerSynchronizationJobContext(context);
-
-    postSpy = jest
-      .spyOn(context.apiClient, 'post')
-      .mockImplementation(noop as any);
+    onPublishEvent = jest.fn();
+    logger = createIntegrationLogger({
+      name,
+      invocationConfig,
+      onPublishEvent,
+    });
   });
 
   const errorDetails = {
@@ -384,41 +352,31 @@ describe('provider auth error details', () => {
   ].forEach(({ error, expectedReason }) => {
     test(`stepFailure adds additional information to the log message if an ${error.code} error is provided`, async () => {
       logger.stepFailure(step, error);
-      await logger.flush();
 
-      expect(postSpy).toHaveBeenCalledWith(expectedEventsUrl, {
-        events: [
-          {
-            name: 'step_failure',
-            description: expect.stringMatching(
-              new RegExp(
-                '^Step "Mochi" failed to complete due to error.' +
-                  PROVIDER_AUTH_ERROR_DESCRIPTION +
-                  ` \\(errorCode="${error.code}", errorId="[^"]*", reason="${expectedReason}"\\)$`,
-              ),
-            ),
-          },
-        ],
+      expect(onPublishEvent).toHaveBeenCalledWith({
+        name: 'step_failure',
+        description: expect.stringMatching(
+          new RegExp(
+            '^Step "Mochi" failed to complete due to error.' +
+              PROVIDER_AUTH_ERROR_DESCRIPTION +
+              ` \\(errorCode="${error.code}", errorId="[^"]*", reason="${expectedReason}"\\)$`,
+          ),
+        ),
       });
     });
 
     test(`validationFailure adds additional information to the log message if an ${error.code} error is provided`, async () => {
       logger.validationFailure(error);
-      await logger.flush();
 
-      expect(postSpy).toHaveBeenCalledWith(expectedEventsUrl, {
-        events: [
-          {
-            name: 'validation_failure',
-            description: expect.stringMatching(
-              new RegExp(
-                '^Error occurred while validating integration configuration.' +
-                  PROVIDER_AUTH_ERROR_DESCRIPTION +
-                  ` \\(errorCode="${error.code}", errorId="[^"]*", reason="${expectedReason}"\\)$`,
-              ),
-            ),
-          },
-        ],
+      expect(onPublishEvent).toHaveBeenCalledWith({
+        name: 'validation_failure',
+        description: expect.stringMatching(
+          new RegExp(
+            '^Error occurred while validating integration configuration.' +
+              PROVIDER_AUTH_ERROR_DESCRIPTION +
+              ` \\(errorCode="${error.code}", errorId="[^"]*", reason="${expectedReason}"\\)$`,
+          ),
+        ),
       });
     });
   });
@@ -426,67 +384,44 @@ describe('provider auth error details', () => {
 
 describe('sync upload logging', () => {
   test('posts events to api client', async () => {
-    const logger = createIntegrationLogger({ name, invocationConfig });
-    const context: SynchronizationJobContext = {
-      logger,
-      job: { id: 'test-job-id' } as SynchronizationJob,
-      apiClient: createApiClient({
-        apiBaseUrl: 'https://api.us.jupiterone.io',
-        account: 'mocheronis',
-      }),
-    };
+    const onPublishEvent = jest.fn();
 
-    logger.registerSynchronizationJobContext(context);
-
-    const postSpy = jest
-      .spyOn(context.apiClient, 'post')
-      .mockImplementation(noop as any);
-
-    logger.synchronizationUploadStart(context.job);
-    logger.synchronizationUploadEnd(context.job);
-
-    await logger.flush();
-
-    const expectedEventsUrl =
-      '/persister/synchronization/jobs/test-job-id/events';
-
-    expect(postSpy).toHaveBeenCalledTimes(2);
-    expect(postSpy).toHaveBeenNthCalledWith(1, expectedEventsUrl, {
-      events: [
-        {
-          name: 'sync_upload_start',
-          description: 'Uploading collected data for synchronization...',
-        },
-      ],
+    const logger = createIntegrationLogger({
+      name,
+      invocationConfig,
+      onPublishEvent: onPublishEvent,
     });
-    expect(postSpy).toHaveBeenNthCalledWith(2, expectedEventsUrl, {
-      events: [{ name: 'sync_upload_end', description: 'Upload complete.' }],
+
+    const job = { id: 'test-job-id' } as SynchronizationJob;
+
+    logger.synchronizationUploadStart(job);
+    logger.synchronizationUploadEnd(job);
+
+    expect(onPublishEvent).toHaveBeenCalledTimes(2);
+    expect(onPublishEvent).toHaveBeenNthCalledWith(1, {
+      name: 'sync_upload_start',
+      description: 'Uploading collected data for synchronization...',
+    });
+    expect(onPublishEvent).toHaveBeenNthCalledWith(2, {
+      name: 'sync_upload_end',
+      description: 'Upload complete.',
     });
   });
 });
 
 describe('validation failure logging', () => {
   test('publishes message to synchronizer and writes error log', async () => {
-    const logger = createIntegrationLogger({ name, invocationConfig });
-    const context: SynchronizationJobContext = {
-      logger,
-      job: { id: 'test-job-id' } as SynchronizationJob,
-      apiClient: createApiClient({
-        apiBaseUrl: 'https://api.us.jupiterone.io',
-        account: 'mocheronis',
-      }),
-    };
-
-    logger.registerSynchronizationJobContext(context);
+    const onPublishEvent = jest.fn();
+    const logger = createIntegrationLogger({
+      name,
+      invocationConfig,
+      onPublishEvent: onPublishEvent,
+    });
 
     const errorSpy = jest.spyOn(logger, 'error');
-    const postSpy = jest
-      .spyOn(context.apiClient, 'post')
-      .mockImplementation(noop as any);
 
     const error = new IntegrationValidationError('Bad Mochi');
     logger.validationFailure(error);
-    await logger.flush();
 
     const expectedDescriptionRegex = new RegExp(
       `Error occurred while validating integration configuration. \\(errorCode="${error.code}", errorId="(.*)", reason="Bad Mochi"\\)$`,
@@ -498,17 +433,10 @@ describe('validation failure logging', () => {
       expect.stringMatching(expectedDescriptionRegex),
     );
 
-    const expectedEventsUrl =
-      '/persister/synchronization/jobs/test-job-id/events';
-
-    expect(postSpy).toHaveBeenCalledTimes(1);
-    expect(postSpy).toHaveBeenNthCalledWith(1, expectedEventsUrl, {
-      events: [
-        {
-          name: 'validation_failure',
-          description: expect.stringMatching(expectedDescriptionRegex),
-        },
-      ],
+    expect(onPublishEvent).toHaveBeenCalledTimes(1);
+    expect(onPublishEvent).toHaveBeenNthCalledWith(1, {
+      name: 'validation_failure',
+      description: expect.stringMatching(expectedDescriptionRegex),
     });
   });
 });
@@ -541,59 +469,36 @@ describe('createErrorEventDescription', () => {
 
 describe('#publishEvent', () => {
   test('should support publishEvent(...) function', async () => {
-    const logger = createIntegrationLogger({ name, invocationConfig });
-    const context: SynchronizationJobContext = {
-      logger,
-      job: { id: 'test-job-id' } as SynchronizationJob,
-      apiClient: createApiClient({
-        apiBaseUrl: 'https://api.us.jupiterone.io',
-        account: 'mocheronis',
-      }),
-    };
+    const onPublishEvent = jest.fn();
 
-    const expectedEventsUrl =
-      '/persister/synchronization/jobs/test-job-id/events';
-
-    logger.registerSynchronizationJobContext(context);
-
-    const postSpy = jest
-      .spyOn(context.apiClient, 'post')
-      .mockImplementation(noop as any);
+    const logger = createIntegrationLogger({
+      name,
+      invocationConfig,
+      onPublishEvent,
+    });
 
     logger.publishEvent({
       name: 'the name',
       description: 'the description',
     });
 
-    await logger.flush();
-
-    expect(postSpy).toHaveBeenCalledTimes(1);
-    expect(postSpy).toHaveBeenNthCalledWith(1, expectedEventsUrl, {
-      events: [{ name: 'the name', description: 'the description' }],
+    expect(onPublishEvent).toHaveBeenCalledTimes(1);
+    expect(onPublishEvent).toHaveBeenCalledWith({
+      name: 'the name',
+      description: 'the description',
     });
   });
 });
 
 describe('#publishErrorEvent', () => {
   test('should support publishErrorEvent(...) function', async () => {
-    const logger = createIntegrationLogger({ name, invocationConfig });
-    const context: SynchronizationJobContext = {
-      logger,
-      job: { id: 'test-job-id' } as SynchronizationJob,
-      apiClient: createApiClient({
-        apiBaseUrl: 'https://api.us.jupiterone.io',
-        account: 'mocheronis',
-      }),
-    };
+    const onPublishEvent = jest.fn();
 
-    const expectedEventsUrl =
-      '/persister/synchronization/jobs/test-job-id/events';
-
-    logger.registerSynchronizationJobContext(context);
-
-    const postSpy = jest
-      .spyOn(context.apiClient, 'post')
-      .mockImplementation(noop as any);
+    const logger = createIntegrationLogger({
+      name,
+      invocationConfig,
+      onPublishEvent,
+    });
 
     const fakeError = new IntegrationError({
       code: 'fake code',
@@ -616,20 +521,14 @@ describe('#publishErrorEvent', () => {
 
     logger.publishErrorEvent(errorEvent);
 
-    await logger.flush();
-
-    expect(postSpy).toHaveBeenCalledTimes(1);
-    expect(postSpy).toHaveBeenNthCalledWith(1, expectedEventsUrl, {
-      events: [
-        {
-          name: errorEvent.name,
-          description: expect.stringMatching(
-            new RegExp(
-              `^${errorEvent.message} \\(errorCode="${fakeError.code}", errorId="[^\\)]+", reason="${fakeError.message}", somethingExtra="${errorEvent.eventData.somethingExtra}"\\)$`,
-            ),
-          ),
-        },
-      ],
+    expect(onPublishEvent).toHaveBeenCalledTimes(1);
+    expect(onPublishEvent).toHaveBeenCalledWith({
+      name: errorEvent.name,
+      description: expect.stringMatching(
+        new RegExp(
+          `^${errorEvent.message} \\(errorCode="${fakeError.code}", errorId="[^\\)]+", reason="${fakeError.message}", somethingExtra="${errorEvent.eventData.somethingExtra}"\\)$`,
+        ),
+      ),
     });
   });
 });

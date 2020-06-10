@@ -1,6 +1,5 @@
 import { StepMetadata } from './';
 import { SynchronizationJob } from './synchronization';
-import { ApiClient } from './apiClient';
 
 interface LogFunction {
   (...args: any[]): boolean | void;
@@ -61,16 +60,7 @@ interface BaseLogger {
   child: ChildLogFunction;
 }
 
-export interface LoggerSynchronizationJobContext {
-  apiClient: ApiClient;
-  job: SynchronizationJob;
-}
-
 export interface IntegrationLoggerFunctions {
-  registerSynchronizationJobContext: (
-    context: LoggerSynchronizationJobContext,
-  ) => IntegrationLogger;
-
   isHandledError: IsHandledErrorFunction;
 
   // Special log functions used to publish events to j1
@@ -90,10 +80,6 @@ export interface IntegrationLoggerFunctions {
    * @deprecated
    */
   publishErrorEvent: PublishErrorEventFunction;
-
-  // flushes the queue of work to ensure that
-  // all events have been published
-  flush: () => Promise<void>;
 }
 
 export type IntegrationLogger = BaseLogger & IntegrationLoggerFunctions;

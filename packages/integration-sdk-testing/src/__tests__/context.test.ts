@@ -61,23 +61,12 @@ const instanceConfigFields: IntegrationInstanceConfigFieldMap = {
         const { logger } = createContext({ instanceConfigFields });
 
         Object.keys(logger).forEach((key) => {
-          if (
-            key !== 'child' &&
-            key !== 'registerSynchronizationJobContext' &&
-            key !== 'flush' &&
-            key !== 'isHandledError'
-          ) {
+          if (key !== 'child' && key !== 'flush' && key !== 'isHandledError') {
             expect(logger[key]).toEqual(noop);
           }
         });
 
-        expect(
-          logger.registerSynchronizationJobContext(
-            {} as SynchronizationJobContext,
-          ),
-        ).toEqual(logger);
         expect(logger.child({})).toEqual(logger);
-        expect(logger.flush).toEqual(noopAsync);
       });
 
       test('generates an execution context with the integration instance used for local development', () => {

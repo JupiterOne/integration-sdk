@@ -126,7 +126,5 @@ export async function executeWithContext<
     'Integration data collection has completed.',
   );
 
-  await logger.flush();
-
   return summary;
 }

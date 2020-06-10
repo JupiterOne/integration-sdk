@@ -1,5 +1,4 @@
 import Logger from 'bunyan';
-import PromiseQueue from 'p-queue';
 import { v4 as uuid } from 'uuid';
 
 import {
@@ -19,13 +18,16 @@ import {
   IntegrationProviderAuthorizationError,
   IntegrationProviderAuthenticationError,
   IntegrationLogger,
-  LoggerSynchronizationJobContext,
   IntegrationLoggerFunctions,
   SynchronizationJob,
 } from '@jupiterone/integration-sdk-core';
 
+import { IntegrationEvent } from '../event';
+
 // eslint-disable-next-line
 const bunyanFormat = require('bunyan-format');
+
+type OnPublishEventListener = (event: IntegrationEvent) => void;
 
 interface CreateLoggerInput<
   TExecutionContext extends ExecutionContext,
@@ -35,6 +37,7 @@ interface CreateLoggerInput<
   invocationConfig?: InvocationConfig<TExecutionContext, TStepExecutionContext>;
   pretty?: boolean;
   serializers?: Logger.Serializers;
+  onPublishEvent?: OnPublishEventListener;
 }
 
 interface CreateIntegrationLoggerInput
@@ -52,6 +55,7 @@ export function createLogger<
   name,
   pretty,
   serializers,
+  onPublishEvent,
 }: CreateLoggerInput<
   TExecutionContext,
   TStepExecutionContext
@@ -74,12 +78,6 @@ export function createLogger<
     logger.addSerializers(serializers);
   }
 
-  // NOTE: concurrency is set to one to allow for logs to be published in
-  // the order that they are added to the queue.
-  //
-  // Optimizations can come later once the synchronization api supports
-  // accepting a timestamp.
-  const eventPublishingQueue = new PromiseQueue({ concurrency: 1 });
   const errorSet = new Set<Error>();
 
   const verboseTraceLogger = instrumentVerboseTrace(logger);
@@ -87,7 +85,7 @@ export function createLogger<
   return instrumentEventLogging(
     instrumentErrorTracking(verboseTraceLogger, errorSet),
     {
-      eventPublishingQueue,
+      onPublishEvent,
       errorSet,
     },
   );
@@ -102,6 +100,7 @@ export function createIntegrationLogger({
   invocationConfig,
   pretty,
   serializers,
+  onPublishEvent,
 }: CreateIntegrationLoggerInput): IntegrationLogger {
   const serializeInstanceConfig = createInstanceConfigSerializer(
     invocationConfig?.instanceConfigFields,
@@ -121,6 +120,7 @@ export function createIntegrationLogger({
       }),
       ...serializers,
     },
+    onPublishEvent,
   });
 }
 
@@ -211,16 +211,15 @@ function instrumentErrorTracking(logger: Logger, errorSet: Set<Error>): Logger {
 }
 
 interface LogContext {
-  eventPublishingQueue: PromiseQueue;
   errorSet: Set<Error>;
-  synchronizationJobContext?: LoggerSynchronizationJobContext;
+  onPublishEvent?: OnPublishEventListener;
 }
 
 function instrumentEventLogging(
   logger: Logger,
   context: LogContext,
 ): IntegrationLogger {
-  const { eventPublishingQueue, errorSet } = context;
+  const { onPublishEvent, errorSet } = context;
   const child = logger.child;
 
   const publishEvent = (name: string, description: string) => {
@@ -228,32 +227,7 @@ function instrumentEventLogging(
       return;
     }
 
-    if (context.synchronizationJobContext) {
-      const { job, apiClient } = context.synchronizationJobContext;
-
-      const event = { name, description };
-
-      eventPublishingQueue.add(async () => {
-        try {
-          await apiClient.post(
-            `/persister/synchronization/jobs/${job.id}/events`,
-            {
-              events: [event],
-            },
-          );
-        } catch (err) {
-          // It's not the end of the world if we fail to publish
-          // an event
-          logger.error(
-            {
-              err,
-              event,
-            },
-            'Failed to publish integration event.',
-          );
-        }
-      });
-    }
+    onPublishEvent?.({ name, description });
   };
 
   const createChildLogger = (options: object = {}, simple?: boolean) => {
@@ -262,23 +236,6 @@ function instrumentEventLogging(
   };
 
   const integrationLoggerFunctions: IntegrationLoggerFunctions = {
-    flush: async () => {
-      await eventPublishingQueue.onIdle();
-    },
-
-    registerSynchronizationJobContext: (
-      synchronizationJobContext: LoggerSynchronizationJobContext,
-    ) => {
-      context.synchronizationJobContext = synchronizationJobContext;
-      const { job } = synchronizationJobContext;
-
-      return createChildLogger({
-        synchronizationJobId: job.id,
-        integrationJobId: job.integrationJobId,
-        integrationInstanceId: job.integrationInstanceId,
-      });
-    },
-
     isHandledError: (err: Error) => errorSet.has(err),
 
     stepStart: (step: StepMetadata) => {

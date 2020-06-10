@@ -53,35 +53,6 @@ describe('initiateSynchronization', () => {
     });
   });
 
-  test('registers synchronization job and apiClient with logger', async () => {
-    const job = generateSynchronizationJob();
-
-    const context = createTestContext();
-
-    const { apiClient, logger } = context;
-    jest.spyOn(apiClient, 'post').mockResolvedValue({
-      data: {
-        job,
-      },
-    });
-    const registerSynchronizationJobContextSpy = jest.spyOn(
-      logger,
-      'registerSynchronizationJobContext',
-    );
-
-    const synchronizationContext = await initiateSynchronization(context);
-
-    expect(registerSynchronizationJobContextSpy).toHaveBeenCalledTimes(1);
-    expect(registerSynchronizationJobContextSpy).toHaveBeenCalledWith({
-      apiClient,
-      job,
-    });
-
-    expect(registerSynchronizationJobContextSpy).toHaveReturnedWith(
-      synchronizationContext.logger,
-    );
-  });
-
   test('throws error if integration instance cannot be found', async () => {
     const context = createTestContext();
     const { apiClient } = context;

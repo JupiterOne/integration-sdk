@@ -1,11 +1,11 @@
-import { ApiClient } from '@jupiterone/integration-sdk-core';
+import { AxiosInstance } from 'axios';
 import Alpha from '@lifeomic/alpha';
 import { malformedApiKeyError, apiKeyRequiredError } from './error';
 
 import dotenv from 'dotenv';
 import dotenvExpand from 'dotenv-expand';
 
-export { ApiClient };
+export type ApiClient = AxiosInstance;
 
 const jwt = require('jsonwebtoken');
 

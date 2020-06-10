@@ -91,9 +91,10 @@ export async function initiateSynchronization({
   return {
     apiClient,
     job,
-    logger: logger.registerSynchronizationJobContext({
-      apiClient,
-      job,
+    logger: logger.child({
+      synchronizationJobId: job.id,
+      integrationJobId: job.integrationJobId,
+      integrationInstanceId: job.integrationInstanceId,
     }),
   };
 }

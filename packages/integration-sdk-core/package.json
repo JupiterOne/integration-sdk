@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "@jupiterone/data-model": "^0.6.4",
-    "axios": "^0.19.2",
     "lodash": "^4.17.15",
     "uuid": "^7.0.3"
   },
