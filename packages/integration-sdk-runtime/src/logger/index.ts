@@ -101,19 +101,15 @@ export function createLogger<
  * serializers common to all integrations.
  */
 export function createIntegrationLogger({
-  name,
   invocationConfig,
-  pretty,
-  serializers,
-  onPublishEvent,
+  ...loggerConfig
 }: CreateIntegrationLoggerInput): IntegrationLogger {
   const serializeInstanceConfig = createInstanceConfigSerializer(
     invocationConfig?.instanceConfigFields,
   );
 
   return createLogger({
-    name,
-    pretty,
+    ...loggerConfig,
     serializers: {
       integrationInstanceConfig: serializeInstanceConfig,
       // since config is serializable from
@@ -123,9 +119,8 @@ export function createIntegrationLogger({
           ? serializeInstanceConfig(instance.config)
           : undefined,
       }),
-      ...serializers,
+      ...loggerConfig.serializers,
     },
-    onPublishEvent,
   });
 }
 
@@ -305,6 +300,7 @@ function instrumentEventLogging(
     },
 
     publishMetric: (metric: Metric) => {
+      console.log('publish listener', onPublishMetric);
       onPublishMetric?.(metric);
     },
 

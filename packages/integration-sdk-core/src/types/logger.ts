@@ -1,6 +1,6 @@
 import { StepMetadata } from './';
 import { SynchronizationJob } from './synchronization';
-import { Metric } from './metric';
+import { Metric } from './metrics';
 
 interface LogFunction {
   (...args: any[]): boolean | void;

@@ -13,9 +13,11 @@ import {
   executeIntegrationInstance,
   createIntegrationInstanceForLocalExecution,
   createEventPublishingQueue,
+  timeOperation,
 } from '@jupiterone/integration-sdk-runtime';
 
 import { loadConfig } from '../config';
+import { Metric } from '@jupiterone/integration-sdk-core';
 
 export function run() {
   return createCommand('run')
@@ -30,6 +32,8 @@ export function run() {
       const apiBaseUrl = getApiBaseUrl({ dev: !!process.env.JUPITERONE_DEV });
       log.debug(`Configuring client to access "${apiBaseUrl}"`);
 
+      const startTime = Date.now();
+
       const apiClient = createApiClientWithApiKey({
         apiBaseUrl,
         apiKey,
@@ -37,13 +41,16 @@ export function run() {
 
       const { integrationInstanceId } = options;
 
+      const metrics: Metric[] = [];
+
       let logger = createIntegrationLogger({
         name: 'local',
         pretty: true,
         onPublishEvent: (event) => {
-          if (eventPublishingQueue) {
-            eventPublishingQueue.enqueue(event);
-          }
+          eventPublishingQueue?.enqueue(event);
+        },
+        onPublishMetric: (metric) => {
+          metrics.push(metric);
         },
       });
 
@@ -62,20 +69,29 @@ export function run() {
       const invocationConfig = await loadConfig();
 
       try {
-        const executionResults = await executeIntegrationInstance(
+        const executionResults = await timeOperation({
           logger,
-          createIntegrationInstanceForLocalExecution(invocationConfig),
-          invocationConfig,
-          {
-            enableSchemaValidation: true,
-          },
-        );
+          metricName: 'collection-duration',
+          operation: () =>
+            executeIntegrationInstance(
+              logger,
+              createIntegrationInstanceForLocalExecution(invocationConfig),
+              invocationConfig,
+              {
+                enableSchemaValidation: true,
+              },
+            ),
+        });
 
         await eventPublishingQueue.onIdle();
 
         log.displayExecutionResults(executionResults);
 
-        await uploadCollectedData(synchronizationContext);
+        await timeOperation({
+          logger,
+          metricName: 'synchronization-upload-duration',
+          operation: () => uploadCollectedData(synchronizationContext),
+        });
 
         const synchronizationResult = await finalizeSynchronization({
           ...synchronizationContext,
@@ -98,6 +114,18 @@ export function run() {
         });
 
         log.displaySynchronizationResults(abortResult);
+      } finally {
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+        console.log(`\nTotal duration: ${duration}ms`);
+        logger.publishMetric({
+          metricName: 'total-duration',
+          unit: 'Milliseconds',
+          value: duration,
+          timestamp: endTime,
+        });
+
+        logger.info({ metrics }, 'Collected metrics');
       }
     });
 }

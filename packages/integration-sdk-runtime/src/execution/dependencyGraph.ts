@@ -219,9 +219,10 @@ export function executeStepDependencyGraph<
         if (isStepEnabled(stepId) && stepDependenciesAreComplete(stepId)) {
           removeStepFromWorkingGraph(stepId);
           promiseQueue.add(() =>
-            timeOperation(executionContext.logger, `${stepId}-duration`, () => {
-              console.log('was this invoked?');
-              return executeStep(step);
+            timeOperation({
+              logger: executionContext.logger,
+              metricName: `${stepId}-duration`,
+              operation: () => executeStep(step),
             }).catch(handleUnexpectedError),
           );
         }

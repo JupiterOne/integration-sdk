@@ -1,14 +1,19 @@
 import { IntegrationLogger } from '@jupiterone/integration-sdk-core';
 
-export async function timeOperation<T extends () => any>(
-  logger: IntegrationLogger,
-  metricName: string,
-  func: T,
-): Promise<T> {
+export interface TimeOperationInput<T extends () => any> {
+  logger: IntegrationLogger;
+  metricName: string;
+  operation: T;
+}
+
+export async function timeOperation<T extends () => any>({
+  logger,
+  metricName,
+  operation,
+}: TimeOperationInput<T>): Promise<ReturnType<T>> {
   const startTime = Date.now();
-  try {
-    return await Promise.resolve(func());
-  } finally {
+  return Promise.resolve(operation()).finally(() => {
+    console.log('this was never called');
     const endTime = Date.now();
     const duration = endTime - startTime;
 
@@ -18,5 +23,5 @@ export async function timeOperation<T extends () => any>(
       value: duration,
       timestamp: endTime,
     });
-  }
+  });
 }
