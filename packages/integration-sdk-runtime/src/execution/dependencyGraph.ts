@@ -16,6 +16,7 @@ import {
   ExecutionContext,
   StepExecutionContext,
 } from '@jupiterone/integration-sdk-core';
+import { timeOperation } from '../metrics';
 
 /**
  * This function accepts a list of steps and constructs a dependency graph
@@ -218,7 +219,10 @@ export function executeStepDependencyGraph<
         if (isStepEnabled(stepId) && stepDependenciesAreComplete(stepId)) {
           removeStepFromWorkingGraph(stepId);
           promiseQueue.add(() =>
-            executeStep(step).catch(handleUnexpectedError),
+            timeOperation(executionContext.logger, `${stepId}-duration`, () => {
+              console.log('was this invoked?');
+              return executeStep(step);
+            }).catch(handleUnexpectedError),
           );
         }
       });
