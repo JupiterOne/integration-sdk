@@ -1,6 +1,11 @@
 import { StepMetadata } from './';
 import { SynchronizationJob } from './synchronization';
 
+export interface IntegrationEvent {
+  name: string;
+  description: string;
+}
+
 interface LogFunction {
   (...args: any[]): boolean | void;
 }
@@ -70,6 +75,11 @@ export interface IntegrationLoggerFunctions {
   synchronizationUploadStart: SynchronizationLogFunction;
   synchronizationUploadEnd: SynchronizationLogFunction;
   validationFailure: ValidationLogFunction;
+
+  on(
+    eventName: 'event',
+    listener: (event: IntegrationEvent) => void,
+  ): IntegrationLogger;
 
   /**
    * @deprecated

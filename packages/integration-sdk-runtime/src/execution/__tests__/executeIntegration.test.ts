@@ -9,7 +9,10 @@ import {
   ExecuteIntegrationResult,
 } from '../executeIntegration';
 import { LOCAL_INTEGRATION_INSTANCE } from '../instance';
-import { createIntegrationLogger } from '../../logger';
+import {
+  createIntegrationLogger,
+  IntegrationLogger as IntegrationLoggerImpl,
+} from '../../logger';
 import {
   IntegrationLogger,
   IntegrationExecutionContext,
@@ -455,7 +458,7 @@ describe('executeIntegrationLocally', () => {
 
     const expectedContext: IntegrationExecutionContext = {
       instance: LOCAL_INTEGRATION_INSTANCE,
-      logger: expect.any(jest.requireActual('bunyan')),
+      logger: expect.any(IntegrationLoggerImpl),
     };
 
     expect(validateInvocation).toHaveBeenCalledWith(expectedContext);

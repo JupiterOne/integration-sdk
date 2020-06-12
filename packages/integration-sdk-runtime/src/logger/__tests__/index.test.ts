@@ -4,7 +4,6 @@ import Logger from 'bunyan';
 import {
   SynchronizationJob,
   IntegrationError,
-  IntegrationLogger,
   IntegrationInvocationConfig,
   IntegrationStep,
   IntegrationLocalConfigFieldMissingError,
@@ -17,6 +16,7 @@ import {
 } from '@jupiterone/integration-sdk-core';
 
 import {
+  IntegrationLogger,
   createIntegrationLogger,
   createErrorEventDescription,
 } from '../../logger';
@@ -30,7 +30,7 @@ describe('logger.trace', () => {
       name,
       invocationConfig,
     });
-    const stream = (integrationLogger as any).streams[0]
+    const stream = (integrationLogger as any)._logger.streams[0]
       .stream as Logger.RingBuffer;
 
     integrationLogger.trace();
@@ -68,7 +68,8 @@ describe('logger.trace', () => {
     const childLogger = integrationLogger.child({
       mostuff: 'smile',
     });
-    const stream = (childLogger as any).streams[0].stream as Logger.RingBuffer;
+    const stream = (childLogger as any)._logger.streams[0]
+      .stream as Logger.RingBuffer;
 
     integrationLogger.trace();
     childLogger.trace();
@@ -268,13 +269,14 @@ describe('step event publishing', () => {
   });
 
   test('posts events via api client if synchronizationContext is registered', async () => {
-    const onPublishEvent = jest.fn();
+    const onEmitEvent = jest.fn();
 
     const logger = createIntegrationLogger({
       name,
       invocationConfig,
-      onPublishEvent: onPublishEvent,
     });
+
+    logger.on('event', onEmitEvent);
 
     const step: IntegrationStep = {
       id: 'a',
@@ -291,16 +293,16 @@ describe('step event publishing', () => {
     const error = new IntegrationLocalConfigFieldMissingError('ripperoni');
     logger.stepFailure(step, error);
 
-    expect(onPublishEvent).toHaveBeenCalledTimes(3);
-    expect(onPublishEvent).toHaveBeenNthCalledWith(1, {
+    expect(onEmitEvent).toHaveBeenCalledTimes(3);
+    expect(onEmitEvent).toHaveBeenNthCalledWith(1, {
       name: 'step_start',
       description: 'Starting step "Mochi"...',
     });
-    expect(onPublishEvent).toHaveBeenNthCalledWith(2, {
+    expect(onEmitEvent).toHaveBeenNthCalledWith(2, {
       name: 'step_end',
       description: 'Completed step "Mochi".',
     });
-    expect(onPublishEvent).toHaveBeenNthCalledWith(3, {
+    expect(onEmitEvent).toHaveBeenNthCalledWith(3, {
       name: 'step_failure',
       description: expect.stringMatching(
         new RegExp(
@@ -320,16 +322,16 @@ describe('provider auth error details', () => {
     executionHandler: jest.fn(),
   };
 
-  let onPublishEvent: jest.MockedFunction<any>;
+  let onEmitEvent: jest.MockedFunction<any>;
   let logger: IntegrationLogger;
 
   beforeEach(() => {
-    onPublishEvent = jest.fn();
+    onEmitEvent = jest.fn();
     logger = createIntegrationLogger({
       name,
       invocationConfig,
-      onPublishEvent,
     });
+    logger.on('event', onEmitEvent);
   });
 
   const errorDetails = {
@@ -353,7 +355,7 @@ describe('provider auth error details', () => {
     test(`stepFailure adds additional information to the log message if an ${error.code} error is provided`, async () => {
       logger.stepFailure(step, error);
 
-      expect(onPublishEvent).toHaveBeenCalledWith({
+      expect(onEmitEvent).toHaveBeenCalledWith({
         name: 'step_failure',
         description: expect.stringMatching(
           new RegExp(
@@ -368,7 +370,7 @@ describe('provider auth error details', () => {
     test(`validationFailure adds additional information to the log message if an ${error.code} error is provided`, async () => {
       logger.validationFailure(error);
 
-      expect(onPublishEvent).toHaveBeenCalledWith({
+      expect(onEmitEvent).toHaveBeenCalledWith({
         name: 'validation_failure',
         description: expect.stringMatching(
           new RegExp(
@@ -384,25 +386,25 @@ describe('provider auth error details', () => {
 
 describe('sync upload logging', () => {
   test('posts events to api client', async () => {
-    const onPublishEvent = jest.fn();
+    const onEmitEvent = jest.fn();
 
     const logger = createIntegrationLogger({
       name,
       invocationConfig,
-      onPublishEvent: onPublishEvent,
     });
+    logger.on('event', onEmitEvent);
 
     const job = { id: 'test-job-id' } as SynchronizationJob;
 
     logger.synchronizationUploadStart(job);
     logger.synchronizationUploadEnd(job);
 
-    expect(onPublishEvent).toHaveBeenCalledTimes(2);
-    expect(onPublishEvent).toHaveBeenNthCalledWith(1, {
+    expect(onEmitEvent).toHaveBeenCalledTimes(2);
+    expect(onEmitEvent).toHaveBeenNthCalledWith(1, {
       name: 'sync_upload_start',
       description: 'Uploading collected data for synchronization...',
     });
-    expect(onPublishEvent).toHaveBeenNthCalledWith(2, {
+    expect(onEmitEvent).toHaveBeenNthCalledWith(2, {
       name: 'sync_upload_end',
       description: 'Upload complete.',
     });
@@ -411,12 +413,12 @@ describe('sync upload logging', () => {
 
 describe('validation failure logging', () => {
   test('publishes message to synchronizer and writes error log', async () => {
-    const onPublishEvent = jest.fn();
+    const onEmitEvent = jest.fn();
     const logger = createIntegrationLogger({
       name,
       invocationConfig,
-      onPublishEvent: onPublishEvent,
     });
+    logger.on('event', onEmitEvent);
 
     const errorSpy = jest.spyOn(logger, 'error');
 
@@ -433,8 +435,8 @@ describe('validation failure logging', () => {
       expect.stringMatching(expectedDescriptionRegex),
     );
 
-    expect(onPublishEvent).toHaveBeenCalledTimes(1);
-    expect(onPublishEvent).toHaveBeenNthCalledWith(1, {
+    expect(onEmitEvent).toHaveBeenCalledTimes(1);
+    expect(onEmitEvent).toHaveBeenNthCalledWith(1, {
       name: 'validation_failure',
       description: expect.stringMatching(expectedDescriptionRegex),
     });
@@ -469,21 +471,22 @@ describe('createErrorEventDescription', () => {
 
 describe('#publishEvent', () => {
   test('should support publishEvent(...) function', async () => {
-    const onPublishEvent = jest.fn();
+    const onEmitEvent = jest.fn();
 
     const logger = createIntegrationLogger({
       name,
       invocationConfig,
-      onPublishEvent,
     });
+
+    logger.on('event', onEmitEvent);
 
     logger.publishEvent({
       name: 'the name',
       description: 'the description',
     });
 
-    expect(onPublishEvent).toHaveBeenCalledTimes(1);
-    expect(onPublishEvent).toHaveBeenCalledWith({
+    expect(onEmitEvent).toHaveBeenCalledTimes(1);
+    expect(onEmitEvent).toHaveBeenCalledWith({
       name: 'the name',
       description: 'the description',
     });
@@ -492,13 +495,14 @@ describe('#publishEvent', () => {
 
 describe('#publishErrorEvent', () => {
   test('should support publishErrorEvent(...) function', async () => {
-    const onPublishEvent = jest.fn();
+    const onEmitEvent = jest.fn();
 
     const logger = createIntegrationLogger({
       name,
       invocationConfig,
-      onPublishEvent,
     });
+
+    logger.on('event', onEmitEvent);
 
     const fakeError = new IntegrationError({
       code: 'fake code',
@@ -521,8 +525,8 @@ describe('#publishErrorEvent', () => {
 
     logger.publishErrorEvent(errorEvent);
 
-    expect(onPublishEvent).toHaveBeenCalledTimes(1);
-    expect(onPublishEvent).toHaveBeenCalledWith({
+    expect(onEmitEvent).toHaveBeenCalledTimes(1);
+    expect(onEmitEvent).toHaveBeenCalledWith({
       name: errorEvent.name,
       description: expect.stringMatching(
         new RegExp(

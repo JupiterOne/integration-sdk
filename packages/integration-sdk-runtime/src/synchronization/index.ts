@@ -7,8 +7,9 @@ import {
   Entity,
   Relationship,
   SynchronizationJob,
-  IntegrationLogger,
 } from '@jupiterone/integration-sdk-core';
+
+import { IntegrationLogger } from '../logger';
 
 import { ExecuteIntegrationResult } from '../execution';
 

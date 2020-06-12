@@ -40,11 +40,6 @@ export function run() {
       let logger = createIntegrationLogger({
         name: 'local',
         pretty: true,
-        onPublishEvent: (event) => {
-          if (eventPublishingQueue) {
-            eventPublishingQueue.enqueue(event);
-          }
-        },
       });
 
       const synchronizationContext = await initiateSynchronization({
@@ -56,6 +51,7 @@ export function run() {
       const eventPublishingQueue = createEventPublishingQueue(
         synchronizationContext,
       );
+      logger.on('event', (event) => eventPublishingQueue.enqueue(event));
 
       logger = synchronizationContext.logger;
 

@@ -1,11 +1,7 @@
+import { IntegrationEvent } from '@jupiterone/integration-sdk-core';
 import PromiseQueue from 'p-queue';
 
 import { SynchronizationJobContext } from '../synchronization';
-
-export interface IntegrationEvent {
-  name: string;
-  description: string;
-}
 
 export const createEventPublishingQueue = ({
   apiClient,

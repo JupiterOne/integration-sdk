@@ -10,9 +10,9 @@ import {
   IntegrationError,
   IntegrationExecutionContext,
   IntegrationInstance,
-  IntegrationLogger,
   IntegrationStep,
   IntegrationStepExecutionContext,
+  IntegrationLogger,
   StepResultStatus,
   JobState,
 } from '@jupiterone/integration-sdk-core';
@@ -21,7 +21,10 @@ import {
   executeStepDependencyGraph,
 } from '../dependencyGraph';
 import { LOCAL_INTEGRATION_INSTANCE } from '../instance';
-import { createIntegrationLogger } from '../../logger';
+import {
+  createIntegrationLogger,
+  IntegrationLogger as IntegrationLoggerImpl,
+} from '../../logger';
 import { getDefaultStepStartStates } from '../step';
 
 jest.mock('fs');
@@ -142,7 +145,7 @@ describe('executeStepDependencyGraph', () => {
 
     expect(executionHandlerSpy).toHaveBeenCalledTimes(1);
 
-    expect(logger!).toBeInstanceOf(jest.requireActual('bunyan'));
+    expect(logger!).toBeInstanceOf(IntegrationLoggerImpl);
     expect(instance!).toEqual(LOCAL_INTEGRATION_INSTANCE);
 
     // ensure job state has expected functions
