@@ -4,5 +4,5 @@
     "packages/integration-sdk-*",
     "packages/cli"
   ],
-  "version": "independent"
+  "version": "5.6.2"
 }
